@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Key } from "react";
 import Avatar from "boring-avatars";
 import {
   FaRegCircleXmark,
@@ -15,14 +15,24 @@ import { User } from "./types/user";
 
 export type GalleryProps = {
   users: User[];
+  isLoading: boolean;
 };
-const Gallery = ({ users }: GalleryProps) => {
-  const [usersList, setUsersList] = useState(users);
+const Gallery = ({ users, isLoading }: GalleryProps) => {
+  const [usersList, setUsersList] = useState<User[] | []>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (users) setUsersList(users);
+  }, [users]);
+
+  useEffect(() => {
+    setLoading(isLoading);
+  }, [isLoading]);
 
   const handleModalOpen = (id: number) => {
-    const user = usersList.find((item) => item.id === id) || null;
+    const user = usersList.find((item: { id: number }) => item.id === id) || null;
 
     if(user) {
       setSelectedUser(user);
@@ -39,26 +49,32 @@ const Gallery = ({ users }: GalleryProps) => {
     <div className="user-gallery">
       <h1 className="heading">Users</h1>
       <div className="items">
-        {usersList.map((user, index) => (
-          <div
-            className="item user-card"
-            key={index}
-            onClick={() => handleModalOpen(user.id)}
-          >
-            <div className="body">
-              <Avatar
-                size={96}
-                name={user.name}
-                variant="marble"
-                colors={["#92A1C6", "#146A7C", "#F0AB3D", "#C271B4", "#C20D90"]}
-              />
-            </div>
-            <div className="info">
-              <div className="name">{user.name}</div>
-              <div className="company">{user.company.name}</div>
-            </div>
-          </div>
-        ))}
+        {loading ? (<p>Loading...</p>) : (
+          usersList.map(
+            (
+              user: { id: number; name: string; company: { name: string } },
+              index: Key
+            ) => (
+              <div
+                className="item user-card"
+                key={index}
+                onClick={() => handleModalOpen(user.id)}
+              >
+                <div className="body">
+                  <Avatar
+                    size={96}
+                    name={user.name}
+                    variant="marble"
+                    colors={["#92A1C6", "#146A7C", "#F0AB3D", "#C271B4", "#C20D90"]}
+                  />
+                </div>
+                <div className="info">
+                  <div className="name">{user.name}</div>
+                  <div className="company">{user.company.name}</div>
+                </div>
+              </div>
+            )
+          ))}
         <Modal isOpen={isModalOpen} onClose={handleModalClose}>
           <div className="user-panel">
             <div className="header">
