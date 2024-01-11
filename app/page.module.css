@@ -209,6 +209,16 @@
   .grid {
     grid-template-columns: repeat(2, 50%);
   }
+  .main {
+    padding: 1rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  .main {
+    padding: 1.5rem;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
