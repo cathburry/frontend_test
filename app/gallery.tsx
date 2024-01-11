@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Key, useState } from "react";
 import Avatar from "boring-avatars";
+import { SingleValue } from "react-select";
 import {
   FaRegCircleXmark,
   FaLocationDot,
@@ -9,6 +10,7 @@ import {
   FaEnvelope,
 } from "react-icons/fa6";
 
+import Controls from "./controls";
 import Modal from "./modal";
 
 import { User } from "./types/user";
@@ -16,15 +18,21 @@ import { User } from "./types/user";
 export type GalleryProps = {
   users: User[];
 };
+
+export type Options = {label: string; value: string; };
+
 const Gallery = ({ users }: GalleryProps) => {
-  const [usersList, setUsersList] = useState(users);
+  const [usersList, setUsersList] = useState<GalleryProps[]>(users);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [sortDirection, setSortDirection] = useState<Options | null>(null);
+  const [sortField, setSortField] = useState<Options | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleModalOpen = (id: number) => {
-    const user = usersList.find((item) => item.id === id) || null;
+    const user =
+      usersList.find((item: { id: number }) => item.id === id) || null;
 
-    if(user) {
+    if (user) {
       setSelectedUser(user);
       setIsModalOpen(true);
     }
@@ -35,30 +43,83 @@ const Gallery = ({ users }: GalleryProps) => {
     setIsModalOpen(false);
   };
 
+  const getProperty = (object: { users: User[] }, path: string): any | undefined => {
+    const properties = path.split('.');
+  
+    if (!object || typeof object !== 'object') {
+      return undefined;
+    }
+
+    const nestedObject = properties.reduce((currentObject: { [key: string]: any }, prop: string | number) => {
+      // Add checks to ensure safe property access
+      return currentObject && typeof currentObject === 'object' ? currentObject[prop] : undefined;
+    }, object);
+    return nestedObject;
+  };
+
+  const sortGallery = (list: GalleryProps[], value: string): GalleryProps[] => {
+    return [...list].sort((a, b) => {
+      const aValue = getProperty(a, value) || '';
+      const bValue = getProperty(b, value) || '';
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return aValue.localeCompare(bValue);
+      }
+
+      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+    });
+  };
+
+  const filterField = (value: SingleValue<Options> | Options) => {
+    const sortedList = sortGallery(usersList, value?.value ?? '').sort((a, b) => (sortDirection?.value !== 'descending' ? 1 : -1));
+
+    setSortField(value);
+    setUsersList(sortedList);
+  };
+
+  const filterDirection = (value: SingleValue<Options> | Options) => {
+    const sortedList = sortGallery(usersList, sortField?.value ?? '').sort((a, b) => (value?.value !== 'descending' ? 1 : -1));
+
+    setSortDirection(value);
+    setUsersList(sortedList);
+  };
+
   return (
     <div className="user-gallery">
-      <h1 className="heading">Users</h1>
+      <div className="heading">
+        <h1 className="title">Users</h1>
+        <Controls
+          field={sortField}
+          direction={sortDirection}
+          filterField={filterField}
+          filterDirection={filterDirection}
+        />
+      </div>
       <div className="items">
-        {usersList.map((user, index) => (
-          <div
-            className="item user-card"
-            key={index}
-            onClick={() => handleModalOpen(user.id)}
-          >
-            <div className="body">
-              <Avatar
-                size={96}
-                name={user.name}
-                variant="marble"
-                colors={["#92A1C6", "#146A7C", "#F0AB3D", "#C271B4", "#C20D90"]}
-              />
+        {usersList.map(
+          (
+            user: { id: number; name: string; company: { name: string } },
+            index: Key
+          ) => (
+            <div
+              className="item user-card"
+              key={index}
+              onClick={() => handleModalOpen(user.id)}
+            >
+              <div className="body">
+                <Avatar
+                  size={96}
+                  name={user.name}
+                  variant="marble"
+                  colors={["#92A1C6", "#146A7C", "#F0AB3D", "#C271B4", "#C20D90"]}
+                />
+              </div>
+              <div className="info">
+                <div className="name">{user.name}</div>
+                <div className="company">{user.company.name}</div>
+              </div>
             </div>
-            <div className="info">
-              <div className="name">{user.name}</div>
-              <div className="company">{user.company.name}</div>
-            </div>
-          </div>
-        ))}
+          ))}
         <Modal isOpen={isModalOpen} onClose={handleModalClose}>
           <div className="user-panel">
             <div className="header">
